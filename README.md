@@ -128,6 +128,12 @@ the throttle and budget alert matter.
   custom CloudWatch metrics, so the model can be judged against the naive
   baseline over time. An alarm triggers if 4 of the last 7 daily errors exceed
   3 °C.
+- **Dashboard:** a CloudWatch dashboard (`monitoring/dashboard.json`) shows
+  daily model error against the baseline, API traffic and latency, Lambda
+  duration and errors, SageMaker invocations and cold-start time, and the
+  accuracy tracker's failures.
+
+![CloudWatch dashboard: daily forecast error vs baseline, API requests and latency, Lambda and SageMaker health](docs/cloudwatch-dashboard.png)
 
 ## Decisions and lessons learned
 
