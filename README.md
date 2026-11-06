@@ -15,7 +15,7 @@ Pipeline, model, API, alarms, CloudWatch dashboard, and a web UI are live.
 The daily accuracy tracker is building up history; infrastructure-as-code and
 CI/CD are still to do (see [Roadmap](#roadmap)).
 
-**Live demo:** _add your GitHub Pages link here once enabled_
+**Live demo:** [nchikwati.github.io/weather-forecast-ml](https://nchikwati.github.io/weather-forecast-ml/)
 
 ## Architecture
 
