@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toronto Next-Day Temperature Forecast</title>
+<meta name="description" content="A machine-learning temperature forecast for Toronto, served from AWS (SageMaker, Lambda, API Gateway). Portfolio project.">
+<style>
+  :root {
+    --bg: #F6F4EF;
+    --surface: #FFFFFF;
+    --ink: #1B2430;
+    --muted: #5B6673;
+    --line: #E2DDD2;
+    --accent: #0F766E;
+    --accent-ink: #FFFFFF;
+    --chip: #EDF4F2;
+    --warn-bg: #FEF3E2;
+    --warn-ink: #8A4B08;
+    --bad-bg: #FDECEC;
+    --bad-ink: #9B1C1C;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E151C;
+      --surface: #16202A;
+      --ink: #E8EDF2;
+      --muted: #9AA7B4;
+      --line: #27333F;
+      --accent: #2DD4BF;
+      --accent-ink: #06201D;
+      --chip: #13262A;
+      --warn-bg: #2A2112;
+      --warn-ink: #F5C46B;
+      --bad-bg: #2E1717;
+      --bad-ink: #F59E9E;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E151C; --surface: #16202A; --ink: #E8EDF2; --muted: #9AA7B4; --line: #27333F;
+    --accent: #2DD4BF; --accent-ink: #06201D; --chip: #13262A;
+    --warn-bg: #2A2112; --warn-ink: #F5C46B; --bad-bg: #2E1717; --bad-ink: #F59E9E;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px 64px; }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+  header { padding: 40px 0 24px; }
+  .eyebrow { margin: 0 0 6px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  h1 { margin: 0 0 10px; font-size: clamp(1.7rem, 5vw, 2.4rem); line-height: 1.15; letter-spacing: -.01em; }
+  .lede { margin: 0; color: var(--muted); max-width: 60ch; }
+  .links { margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 15px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .card + .card { margin-top: 16px; }
+  h2 { margin: 0 0 12px; font-size: 1.15rem; letter-spacing: -.005em; }
+  h3 { margin: 0 0 8px; font-size: 1rem; }
+  .muted { color: var(--muted); }
+  .small { font-size: 14px; }
+
+  /* Forecast headline */
+  .top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 16px 24px; }
+  .pred-label { margin: 0 0 4px; font-size: 15px; color: var(--muted); }
+  .pred { display: flex; align-items: baseline; gap: 6px; line-height: 1; }
+  .pred-value { font-size: clamp(3.6rem, 14vw, 5.8rem); font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .pred-unit { font-size: clamp(1.4rem, 5vw, 2rem); font-weight: 600; color: var(--muted); }
+  .pred-note { margin: 10px 0 0; max-width: 46ch; }
+
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button {
+    border: 0; background: transparent; color: var(--ink);
+    padding: 8px 16px; min-height: 40px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+  .btn {
+    border: 0; background: var(--accent); color: var(--accent-ink);
+    padding: 10px 18px; min-height: 44px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  .btn:disabled { opacity: .6; cursor: progress; }
+  .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+
+  .chart-wrap { margin-top: 24px; max-width: 620px; }
+  .chart-wrap svg { width: 100%; height: auto; display: block; }
+  .ch-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .ch-proj { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 6 6; }
+  .ch-avg { stroke: var(--muted); stroke-width: 1.3; stroke-dasharray: 3 5; }
+  .ch-dot { fill: var(--surface); stroke: var(--accent); stroke-width: 2.5; }
+  .ch-dot-f { fill: var(--accent); stroke: var(--surface); stroke-width: 3; }
+  .ch-val { fill: var(--ink); font-size: 16px; font-weight: 600; text-anchor: middle; font-variant-numeric: tabular-nums; }
+  .ch-day { fill: var(--muted); font-size: 13.5px; text-anchor: middle; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 13.5px; color: var(--muted); }
+  .legend li { display: inline-flex; align-items: center; gap: 8px; }
+  .sw { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--accent); }
+  .sw.dash { border-top-style: dashed; }
+  .sw.avg { border-top: 2px dashed var(--muted); }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 0; padding: 0; list-style: none; }
+  .tile { background: var(--chip); border-radius: 12px; padding: 10px 12px; }
+  .tile .k { display: block; font-size: 13px; color: var(--muted); }
+  .tile .v { display: block; font-size: 1.15rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+  .latency { margin: 18px 0 0; }
+  .actions { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+
+  /* Loading */
+  .loading { display: flex; gap: 16px; align-items: flex-start; }
+  .spinner {
+    flex: none; width: 34px; height: 34px; border-radius: 50%;
+    border: 4px solid var(--line); border-top-color: var(--accent);
+    animation: spin 0.9s linear infinite; margin-top: 2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: var(--line); border-right-color: var(--accent); } }
+  .loading h2 { margin-bottom: 4px; }
+  .notice { margin: 12px 0 0; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn-ink); font-size: 14.5px; }
+  .error { border-color: var(--bad-ink); }
+  .error h2 { color: var(--bad-ink); }
+
+  /* Explainer */
+  .steps { margin: 0; padding-left: 1.2rem; }
+  .steps li { margin: 0 0 8px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 4px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); font-size: 15px; }
+  th { color: var(--muted); font-weight: 600; font-size: 13.5px; }
+  td.num, th.num { text-align: right; }
+  tr.best td { font-weight: 700; }
+  .diagram { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; margin-top: 12px; }
+  ul.plain { margin: 8px 0 0; padding-left: 1.2rem; }
+  ul.plain li { margin-bottom: 6px; }
+  footer { margin-top: 28px; font-size: 14px; color: var(--muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Machine learning on AWS</p>
+    <h1>Toronto next-day temperature forecast</h1>
+    <p class="lede">A portfolio project: an XGBoost model trained on six years of Toronto weather, served through SageMaker, Lambda and API Gateway. Open this page and it asks the live model for a prediction.</p>
+    <p class="links">
+      <a href="#how">How it works</a>
+      <a id="repo-link" href="#">Source code on GitHub</a>
+    </p>
+  </header>
+
+  <main>
+    <noscript><div class="card error"><h2>JavaScript is required</h2><p>This page calls a live API to get the forecast, so it needs JavaScript enabled.</p></div></noscript>
+
+    <section class="card" id="forecast" aria-live="polite" aria-busy="true" aria-label="Forecast">
+      <!-- Loading -->
+      <div id="state-loading" class="loading">
+        <div class="spinner" aria-hidden="true"></div>
+        <div>
+          <h2>Asking the model&hellip; <span id="elapsed" class="muted"></span></h2>
+          <p class="muted" style="margin:0">Fetching recent weather and running the model.</p>
+          <p id="slow-note" class="notice" hidden>The model runs on a serverless endpoint that scales to zero when nobody is using it, so the first request after a quiet period takes about 10 seconds while it wakes up. Later requests take well under a second.</p>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div id="state-result" hidden>
+        <div class="top">
+          <div>
+            <p class="pred-label" id="pred-label"></p>
+            <div class="pred"><span class="pred-value" id="pred-value"></span><span class="pred-unit" id="pred-unit"></span></div>
+            <p class="pred-note muted small">On days the model had never seen, its average miss was 2.0&nbsp;&deg;C (3.6&nbsp;&deg;F). Treat it as a guide, not a weather service.</p>
+          </div>
+          <div class="seg" role="group" aria-label="Temperature unit">
+            <button type="button" id="unit-c" aria-pressed="true">&deg;C</button>
+            <button type="button" id="unit-f" aria-pressed="false">&deg;F</button>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <h3>Recent days and the forecast</h3>
+          <div id="chart"></div>
+          <ul class="legend">
+            <li><span class="sw"></span>Observed daily average</li>
+            <li><span class="sw dash"></span>Forecast</li>
+            <li><span class="sw avg"></span>7-day average: <span id="avg7"></span></li>
+          </ul>
+        </div>
+
+        <h3 style="margin-top:24px" id="tiles-title"></h3>
+        <ul class="tiles" id="tiles"></ul>
+
+        <p class="latency muted small" id="latency"></p>
+        <div class="actions">
+          <button type="button" class="btn secondary" id="refresh">Get the forecast again</button>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div id="state-error" hidden>
+        <h2 id="err-title">Couldn't get a forecast</h2>
+        <p id="err-body" style="margin:0 0 16px"></p>
+        <button type="button" class="btn" id="retry">Try again</button>
+      </div>
+    </section>
+
+    <section class="card" id="how">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li><strong>Your browser</strong> calls <code>GET /forecast</code> on an API Gateway HTTP API (rate limited to protect costs).</li>
+        <li><strong>A Lambda function</strong> pulls the last nine days of hourly weather from Open-Meteo, turns complete days into 13 features (daily averages, 1- and 2-day lags, a 7-day average, month and day of year), and calls the model.</li>
+        <li><strong>A SageMaker serverless endpoint</strong> runs an XGBoost model trained on 2020&ndash;2025 data and returns the predicted average temperature for the next day.</li>
+        <li><strong>A daily job</strong> compares each saved prediction with what actually happened and publishes the error to CloudWatch, with alarms by email.</li>
+      </ol>
+
+      <h3 style="margin-top:22px">Does it beat a trivial guess?</h3>
+      <p class="muted small" style="margin:0">Scored on 329 held-out days it never saw while training (chronological split, no shuffling).</p>
+      <table>
+        <thead><tr><th>Model</th><th class="num">Avg miss (MAE)</th><th class="num">RMSE</th></tr></thead>
+        <tbody>
+          <tr><td>Tomorrow = today</td><td class="num">2.37 &deg;C</td><td class="num">3.14 &deg;C</td></tr>
+          <tr><td>7-day average</td><td class="num">2.80 &deg;C</td><td class="num">3.53 &deg;C</td></tr>
+          <tr class="best"><td>XGBoost (this model)</td><td class="num">1.99 &deg;C</td><td class="num">2.60 &deg;C</td></tr>
+        </tbody>
+      </table>
+      <p class="muted small" style="margin:0">About 16% better than the strongest simple baseline. Next-day temperature is hard to beat because it changes slowly.</p>
+
+      <img class="diagram" src="deployment-diagram.png" alt="Architecture diagram: a client calls API Gateway, which invokes a Lambda that fetches weather data and calls a SageMaker serverless endpoint; a daily job tracks accuracy in CloudWatch and sends alerts through SNS." loading="lazy" width="1500" height="860">
+    </section>
+
+    <section class="card">
+      <h2>Known limits</h2>
+      <ul class="plain">
+        <li>One city (Toronto), and the model only sees past observations. It does not use atmospheric simulations, so it is not a substitute for a real forecast.</li>
+        <li>The model was trained on Open-Meteo's historical archive, while this page feeds it the recent-data feed, so inputs can differ slightly from what it learned on.</li>
+        <li>The prediction is for the day after the latest <em>complete</em> day of data, which is normally today (UTC).</li>
+        <li>The first request after a quiet period is slow by design (serverless cold start).</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>Built with AWS SageMaker, Lambda, API Gateway, Glue, Athena and CloudWatch. Weather data from <a href="https://open-meteo.com/">Open-Meteo</a>.</footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---- Configuration ------------------------------------------------------
+  const CONFIG = {
+    apiUrl: "https://l0zgrh9w77.execute-api.us-east-2.amazonaws.com/forecast",
+    repoUrl: "https://github.com/nchikwati/weather-forecast-ml",
+    timeoutMs: 45000,   // cold starts take ~10 s; allow generous headroom
+    slowAfterMs: 3000,  // show the "waking up" explanation after this long
+  };
+
+  const FEATURE_KEYS = [
+    "avg_temp", "max_temp", "min_temp", "avg_humidity", "total_precip",
+    "avg_wind", "avg_pressure", "avg_cloud_cover",
+    "temp_lag_1d", "temp_lag_2d", "temp_rolling_7d",
+  ];
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+  const $ = (id) => document.getElementById(id);
+  const state = { unit: "C", data: null, ms: null, loading: false };
+  let timerId = null;
+
+  // ---- Small DOM helpers (all API text goes in via textContent) -----------
+  function el(tag, props, children) {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(props || {})) {
+      if (k === "class") n.className = v;
+      else if (k === "text") n.textContent = v;
+      else n.setAttribute(k, v);
+    }
+    for (const c of [].concat(children || [])) if (c) n.append(c);
+    return n;
+  }
+  function svg(tag, attrs, text) {
+    const n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+
+  // ---- Formatting ---------------------------------------------------------
+  const toUnit = (c) => (state.unit === "C" ? c : (c * 9) / 5 + 32);
+  const temp = (c) => toUnit(c).toFixed(1) + "°";
+  const parseDay = (iso) => new Date(iso + "T00:00:00Z");
+  const dayLong = (iso) =>
+    parseDay(iso).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+  const dayShort = (iso) =>
+    parseDay(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+  function addDays(iso, n) {
+    const d = parseDay(iso);
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // ---- Validation ---------------------------------------------------------
+  function validate(d) {
+    const ok =
+      d && typeof d === "object" &&
+      Number.isFinite(d.predicted_avg_temp_c) &&
+      typeof d.features_day === "string" && DATE_RE.test(d.features_day) &&
+      typeof d.predicted_day === "string" && DATE_RE.test(d.predicted_day) &&
+      d.features && FEATURE_KEYS.every((k) => Number.isFinite(d.features[k]));
+    if (!ok) throw new Error("unexpected response shape");
+  }
+
+  // ---- View switching -----------------------------------------------------
+  function show(name) {
+    for (const n of ["loading", "result", "error"]) $("state-" + n).hidden = n !== name;
+    $("forecast").setAttribute("aria-busy", name === "loading" ? "true" : "false");
+  }
+
+  function startTimer() {
+    const t0 = performance.now();
+    $("slow-note").hidden = true;
+    $("elapsed").textContent = "";
+    timerId = setInterval(() => {
+      const ms = performance.now() - t0;
+      $("elapsed").textContent = (ms / 1000).toFixed(1) + " s";
+      if (ms > CONFIG.slowAfterMs) $("slow-note").hidden = false;
+    }, 200);
+  }
+  function stopTimer() { clearInterval(timerId); timerId = null; }
+
+  // ---- Rendering ----------------------------------------------------------
+  function renderChart(d) {
+    const f = d.features;
+    const pts = [
+      { day: addDays(d.features_day, -2), v: f.temp_lag_2d, forecast: false },
+      { day: addDays(d.features_day, -1), v: f.temp_lag_1d, forecast: false },
+      { day: d.features_day, v: f.avg_temp, forecast: false },
+      { day: d.predicted_day, v: d.predicted_avg_temp_c, forecast: true },
+    ];
+    const W = 520, H = 240, padX = 52, top = 44, bottom = 52;
+    const vals = pts.map((p) => toUnit(p.v)).concat(toUnit(f.temp_rolling_7d));
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const minSpan = state.unit === "C" ? 4 : 7;
+    if (hi - lo < minSpan) { const mid = (hi + lo) / 2; lo = mid - minSpan / 2; hi = mid + minSpan / 2; }
+    const pad = (hi - lo) * 0.12; lo -= pad; hi += pad;
+    const x = (i) => padX + (i * (W - 2 * padX)) / (pts.length - 1);
+    const y = (c) => top + ((hi - toUnit(c)) / (hi - lo)) * (H - top - bottom);
+
+    const root = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+      "aria-label": "Daily average temperatures: " +
+        pts.map((p) => `${dayShort(p.day)} ${temp(p.v)}${p.forecast ? " (forecast)" : ""}`).join(", ") });
+
+    const yAvg = y(f.temp_rolling_7d);
+    root.append(svg("line", { class: "ch-avg", x1: 12, x2: W - 12, y1: yAvg, y2: yAvg }));
+
+    const past = pts.slice(0, 3).map((p, i) => `${x(i)},${y(p.v)}`).join(" ");
+    root.append(svg("polyline", { class: "ch-line", points: past }));
+    root.append(svg("line", { class: "ch-proj", x1: x(2), y1: y(pts[2].v), x2: x(3), y2: y(pts[3].v) }));
+
+    pts.forEach((p, i) => {
+      root.append(svg("circle", { class: p.forecast ? "ch-dot-f" : "ch-dot", cx: x(i), cy: y(p.v), r: p.forecast ? 8 : 5.5 }));
+      root.append(svg("text", { class: "ch-val", x: x(i), y: y(p.v) - 16 }, temp(p.v)));
+      root.append(svg("text", { class: "ch-day", x: x(i), y: H - 20 }, dayShort(p.day)));
+      if (p.forecast) root.append(svg("text", { class: "ch-day", x: x(i), y: H - 5 }, "forecast"));
+    });
+
+    $("chart").replaceChildren(root);
+    $("avg7").textContent = temp(f.temp_rolling_7d);
+  }
+
+  function renderTiles(d) {
+    const f = d.features;
+    const rows = [
+      ["Average", temp(f.avg_temp)],
+      ["High", temp(f.max_temp)],
+      ["Low", temp(f.min_temp)],
+      ["7-day average", temp(f.temp_rolling_7d)],
+      ["Humidity", f.avg_humidity.toFixed(0) + " %"],
+      ["Precipitation", f.total_precip.toFixed(1) + " mm"],
+      ["Wind", f.avg_wind.toFixed(1) + " km/h"],
+      ["Pressure", f.avg_pressure.toFixed(0) + " hPa"],
+      ["Cloud cover", f.avg_cloud_cover.toFixed(0) + " %"],
+    ];
+    $("tiles-title").textContent = "What the model saw on " + dayShort(d.features_day) + " (UTC)";
+    $("tiles").replaceChildren(
+      ...rows.map(([k, v]) => el("li", { class: "tile" }, [el("span", { class: "k", text: k }), el("span", { class: "v", text: v })]))
+    );
+  }
+
+  function renderLatency() {
+    const s = state.ms / 1000;
+    $("latency").textContent = s > 4
+      ? `Answered in ${s.toFixed(1)} s. The model endpoint was asleep and had to wake up; repeat requests are much faster.`
+      : `Answered in ${s.toFixed(2)} s (the model endpoint was already warm).`;
+  }
+
+  function render() {
+    const d = state.data;
+    if (!d) return;
+    $("pred-label").textContent = "Predicted average temperature for " + dayLong(d.predicted_day) + " (UTC)";
+    $("pred-value").textContent = toUnit(d.predicted_avg_temp_c).toFixed(1);
+    $("pred-unit").textContent = "°" + state.unit;
+    $("unit-c").setAttribute("aria-pressed", String(state.unit === "C"));
+    $("unit-f").setAttribute("aria-pressed", String(state.unit === "F"));
+    renderChart(d);
+    renderTiles(d);
+    renderLatency();
+  }
+
+  // ---- Errors -------------------------------------------------------------
+  function describe(err) {
+    if (err && err.name === "AbortError")
+      return ["The request timed out", "The model took too long to respond. It may be waking up from a cold start, so trying again usually works."];
+    if (err && err.status === 429)
+      return ["Too many requests", "The API is rate limited to keep costs down. Wait a few seconds and try again."];
+    if (err && err.status >= 500)
+      return ["The forecast service had a problem", "Something failed on the server side while building the forecast. It has been logged, so please try again in a minute."];
+    if (err instanceof TypeError)
+      return ["Couldn't reach the API", "The browser couldn't connect to the forecast API. Check your connection. If you are running this page locally, the API's CORS setting must allow this origin."];
+    return ["Couldn't read the forecast", "The API answered, but the response wasn't in the expected format."];
+  }
+
+  function showError(err) {
+    const [title, body] = describe(err);
+    $("err-title").textContent = title;
+    $("err-body").textContent = body;
+    show("error");
+  }
+
+  // ---- Data loading -------------------------------------------------------
+  async function load() {
+    if (state.loading) return;
+    state.loading = true;
+    show("loading");
+    startTimer();
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), CONFIG.timeoutMs);
+    const t0 = performance.now();
+    try {
+      const res = await fetch(CONFIG.apiUrl, { headers: { Accept: "application/json" }, signal: ctrl.signal });
+      if (!res.ok) { const e = new Error("http " + res.status); e.status = res.status; throw e; }
+      const data = await res.json();
+      validate(data);
+      state.data = data;
+      state.ms = performance.now() - t0;
+      render();
+      show("result");
+    } catch (err) {
+      showError(err);
+    } finally {
+      clearTimeout(timeout);
+      stopTimer();
+      state.loading = false;
+    }
+  }
+
+  // ---- Wiring -------------------------------------------------------------
+  $("repo-link").href = CONFIG.repoUrl;
+  $("refresh").addEventListener("click", load);
+  $("retry").addEventListener("click", load);
+  $("unit-c").addEventListener("click", () => { state.unit = "C"; render(); });
+  $("unit-f").addEventListener("click", () => { state.unit = "F"; render(); });
+  load();
+})();
+</script>
+</body>
+</html>

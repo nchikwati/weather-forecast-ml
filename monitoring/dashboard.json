@@ -1,0 +1,272 @@
+{
+  "widgets": [
+    {
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 24,
+      "height": 2,
+      "properties": {
+        "markdown": "# Weather Forecast ML\nServing health (API Gateway, Lambda, SageMaker serverless endpoint) and daily model accuracy versus the naive \"tomorrow = today\" baseline."
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 2,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Daily forecast error in \u00b0C, average per day (lower is better)",
+        "region": "us-east-2",
+        "stat": "Average",
+        "period": 86400,
+        "view": "timeSeries",
+        "metrics": [
+          [
+            "WeatherForecastML",
+            "ForecastAbsError",
+            {
+              "label": "Model"
+            }
+          ],
+          [
+            "WeatherForecastML",
+            "PersistenceAbsError",
+            {
+              "label": "Baseline: tomorrow = today"
+            }
+          ]
+        ],
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "label": "abs error (\u00b0C)"
+          }
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 2,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "API requests and 5xx errors",
+        "region": "us-east-2",
+        "stat": "Sum",
+        "period": 300,
+        "view": "timeSeries",
+        "metrics": [
+          [
+            "AWS/ApiGateway",
+            "Count",
+            "ApiId",
+            "l0zgrh9w77",
+            {
+              "label": "Requests"
+            }
+          ],
+          [
+            "AWS/ApiGateway",
+            "5xx",
+            "ApiId",
+            "l0zgrh9w77",
+            {
+              "label": "5xx errors",
+              "color": "#d62728"
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 8,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "API latency (ms)",
+        "region": "us-east-2",
+        "stat": "Average",
+        "period": 300,
+        "view": "timeSeries",
+        "metrics": [
+          [
+            "AWS/ApiGateway",
+            "Latency",
+            "ApiId",
+            "l0zgrh9w77",
+            {
+              "label": "Average"
+            }
+          ],
+          [
+            "AWS/ApiGateway",
+            "Latency",
+            "ApiId",
+            "l0zgrh9w77",
+            {
+              "label": "p95",
+              "stat": "p95"
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 8,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "Forecast Lambda: duration (ms) and errors",
+        "region": "us-east-2",
+        "stat": "Average",
+        "period": 300,
+        "view": "timeSeries",
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Duration",
+            "FunctionName",
+            "weather-forecast-api",
+            {
+              "label": "Duration (avg)"
+            }
+          ],
+          [
+            "AWS/Lambda",
+            "Errors",
+            "FunctionName",
+            "weather-forecast-api",
+            {
+              "label": "Errors",
+              "stat": "Sum",
+              "yAxis": "right",
+              "color": "#d62728"
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 8,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "SageMaker endpoint: invocations and errors",
+        "region": "us-east-2",
+        "stat": "Sum",
+        "period": 300,
+        "view": "timeSeries",
+        "metrics": [
+          [
+            "AWS/SageMaker",
+            "Invocations",
+            "EndpointName",
+            "weather-forecast-serverless",
+            "VariantName",
+            "AllTraffic",
+            {
+              "label": "Invocations"
+            }
+          ],
+          [
+            "AWS/SageMaker",
+            "Invocation5XXErrors",
+            "EndpointName",
+            "weather-forecast-serverless",
+            "VariantName",
+            "AllTraffic",
+            {
+              "label": "5xx errors",
+              "color": "#d62728"
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 14,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "SageMaker serverless: cold-start setup time vs model latency (\u00b5s)",
+        "region": "us-east-2",
+        "stat": "Maximum",
+        "period": 300,
+        "view": "timeSeries",
+        "metrics": [
+          [
+            "AWS/SageMaker",
+            "ModelSetupTime",
+            "EndpointName",
+            "weather-forecast-serverless",
+            "VariantName",
+            "AllTraffic",
+            {
+              "label": "Cold-start setup time (max)"
+            }
+          ],
+          [
+            "AWS/SageMaker",
+            "OverheadLatency",
+            "EndpointName",
+            "weather-forecast-serverless",
+            "VariantName",
+            "AllTraffic",
+            {
+              "label": "Overhead latency (max)"
+            }
+          ],
+          [
+            "AWS/SageMaker",
+            "ModelLatency",
+            "EndpointName",
+            "weather-forecast-serverless",
+            "VariantName",
+            "AllTraffic",
+            {
+              "label": "Model latency (max)"
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 14,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Accuracy tracker Lambda: errors (a failed daily run)",
+        "region": "us-east-2",
+        "stat": "Sum",
+        "period": 3600,
+        "view": "timeSeries",
+        "metrics": [
+          [
+            "AWS/Lambda",
+            "Errors",
+            "FunctionName",
+            "weather-accuracy-tracker",
+            {
+              "label": "Errors",
+              "color": "#d62728"
+            }
+          ]
+        ]
+      }
+    }
+  ],
+  "periodOverride": "inherit"
+}

@@ -1,0 +1,6 @@
+{
+  "AllowOrigins": ["https://nchikwati.github.io", "http://localhost:8000"],
+  "AllowMethods": ["GET"],
+  "AllowHeaders": ["accept"],
+  "MaxAge": 3600
+}

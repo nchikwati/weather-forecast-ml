@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Build artifacts
+*.zip
+
+# Local data and secrets: never commit these
+*.jsonl
+*.parquet
+.env
+*.pem
+.aws/
+
+# Editor / OS
+.vscode/
+.DS_Store
+
+# Local copies of the S3 data lake
+local_data/

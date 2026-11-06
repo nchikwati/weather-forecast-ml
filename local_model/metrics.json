@@ -1,0 +1,36 @@
+{
+  "rows": {
+    "train": 1532,
+    "val": 328,
+    "test": 329
+  },
+  "features": [
+    "avg_temp",
+    "max_temp",
+    "min_temp",
+    "avg_humidity",
+    "total_precip",
+    "avg_wind",
+    "avg_pressure",
+    "avg_cloud_cover",
+    "temp_lag_1d",
+    "temp_lag_2d",
+    "temp_rolling_7d",
+    "month",
+    "day_of_year"
+  ],
+  "results": {
+    "baseline_persistence": {
+      "mae": 2.3720997973657547,
+      "rmse": 3.137458944768532
+    },
+    "baseline_rolling_7d": {
+      "mae": 2.800318425242438,
+      "rmse": 3.532017448512629
+    },
+    "xgboost": {
+      "mae": 2.01802779644588,
+      "rmse": 2.6240016378668622
+    }
+  }
+}
