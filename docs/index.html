@@ -3,157 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Toronto Next-Day Temperature Forecast</title>
+<title>Toronto Temperature Forecast</title>
 <meta name="description" content="A machine-learning temperature forecast for Toronto, served from AWS (SageMaker, Lambda, API Gateway). Portfolio project.">
-<style>
-  :root {
-    --bg: #F6F4EF;
-    --surface: #FFFFFF;
-    --ink: #1B2430;
-    --muted: #5B6673;
-    --line: #E2DDD2;
-    --accent: #0F766E;
-    --accent-ink: #FFFFFF;
-    --chip: #EDF4F2;
-    --warn-bg: #FEF3E2;
-    --warn-ink: #8A4B08;
-    --bad-bg: #FDECEC;
-    --bad-ink: #9B1C1C;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #0E151C;
-      --surface: #16202A;
-      --ink: #E8EDF2;
-      --muted: #9AA7B4;
-      --line: #27333F;
-      --accent: #2DD4BF;
-      --accent-ink: #06201D;
-      --chip: #13262A;
-      --warn-bg: #2A2112;
-      --warn-ink: #F5C46B;
-      --bad-bg: #2E1717;
-      --bad-ink: #F59E9E;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #0E151C; --surface: #16202A; --ink: #E8EDF2; --muted: #9AA7B4; --line: #27333F;
-    --accent: #2DD4BF; --accent-ink: #06201D; --chip: #13262A;
-    --warn-bg: #2A2112; --warn-ink: #F5C46B; --bad-bg: #2E1717; --bad-ink: #F59E9E;
-  }
-
-  * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px 64px; }
-  a { color: var(--accent); }
-  a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
-
-  header { padding: 40px 0 24px; }
-  .eyebrow { margin: 0 0 6px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-  h1 { margin: 0 0 10px; font-size: clamp(1.7rem, 5vw, 2.4rem); line-height: 1.15; letter-spacing: -.01em; }
-  .lede { margin: 0; color: var(--muted); max-width: 60ch; }
-  .links { margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 15px; }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 24px;
-  }
-  .card + .card { margin-top: 16px; }
-  h2 { margin: 0 0 12px; font-size: 1.15rem; letter-spacing: -.005em; }
-  h3 { margin: 0 0 8px; font-size: 1rem; }
-  .muted { color: var(--muted); }
-  .small { font-size: 14px; }
-
-  /* Forecast headline */
-  .top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 16px 24px; }
-  .pred-label { margin: 0 0 4px; font-size: 15px; color: var(--muted); }
-  .pred { display: flex; align-items: baseline; gap: 6px; line-height: 1; }
-  .pred-value { font-size: clamp(3.6rem, 14vw, 5.8rem); font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-  .pred-unit { font-size: clamp(1.4rem, 5vw, 2rem); font-weight: 600; color: var(--muted); }
-  .pred-note { margin: 10px 0 0; max-width: 46ch; }
-
-  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-  .seg button {
-    border: 0; background: transparent; color: var(--ink);
-    padding: 8px 16px; min-height: 40px; font: inherit; font-weight: 600; cursor: pointer;
-  }
-  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-
-  .btn {
-    border: 0; background: var(--accent); color: var(--accent-ink);
-    padding: 10px 18px; min-height: 44px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer;
-  }
-  .btn:disabled { opacity: .6; cursor: progress; }
-  .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
-
-  .chart-wrap { margin-top: 24px; max-width: 620px; }
-  .chart-wrap svg { width: 100%; height: auto; display: block; }
-  .ch-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
-  .ch-proj { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 6 6; }
-  .ch-avg { stroke: var(--muted); stroke-width: 1.3; stroke-dasharray: 3 5; }
-  .ch-dot { fill: var(--surface); stroke: var(--accent); stroke-width: 2.5; }
-  .ch-dot-f { fill: var(--accent); stroke: var(--surface); stroke-width: 3; }
-  .ch-val { fill: var(--ink); font-size: 16px; font-weight: 600; text-anchor: middle; font-variant-numeric: tabular-nums; }
-  .ch-day { fill: var(--muted); font-size: 13.5px; text-anchor: middle; }
-  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 13.5px; color: var(--muted); }
-  .legend li { display: inline-flex; align-items: center; gap: 8px; }
-  .sw { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--accent); }
-  .sw.dash { border-top-style: dashed; }
-  .sw.avg { border-top: 2px dashed var(--muted); }
-
-  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 0; padding: 0; list-style: none; }
-  .tile { background: var(--chip); border-radius: 12px; padding: 10px 12px; }
-  .tile .k { display: block; font-size: 13px; color: var(--muted); }
-  .tile .v { display: block; font-size: 1.15rem; font-weight: 650; font-variant-numeric: tabular-nums; }
-
-  .latency { margin: 18px 0 0; }
-  .actions { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-
-  /* Loading */
-  .loading { display: flex; gap: 16px; align-items: flex-start; }
-  .spinner {
-    flex: none; width: 34px; height: 34px; border-radius: 50%;
-    border: 4px solid var(--line); border-top-color: var(--accent);
-    animation: spin 0.9s linear infinite; margin-top: 2px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: var(--line); border-right-color: var(--accent); } }
-  .loading h2 { margin-bottom: 4px; }
-  .notice { margin: 12px 0 0; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn-ink); font-size: 14.5px; }
-  .error { border-color: var(--bad-ink); }
-  .error h2 { color: var(--bad-ink); }
-
-  /* Explainer */
-  .steps { margin: 0; padding-left: 1.2rem; }
-  .steps li { margin: 0 0 8px; }
-  table { width: 100%; border-collapse: collapse; margin: 12px 0 4px; font-variant-numeric: tabular-nums; }
-  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); font-size: 15px; }
-  th { color: var(--muted); font-weight: 600; font-size: 13.5px; }
-  td.num, th.num { text-align: right; }
-  tr.best td { font-weight: 700; }
-  .diagram { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; margin-top: 12px; }
-  ul.plain { margin: 8px 0 0; padding-left: 1.2rem; }
-  ul.plain li { margin-bottom: 6px; }
-  footer { margin-top: 28px; font-size: 14px; color: var(--muted); }
-  [hidden] { display: none !important; }
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="wrap">
   <header>
     <p class="eyebrow">Machine learning on AWS</p>
-    <h1>Toronto next-day temperature forecast</h1>
-    <p class="lede">A portfolio project: an XGBoost model trained on six years of Toronto weather, served through SageMaker, Lambda and API Gateway. Open this page and it asks the live model for a prediction.</p>
+    <h1>Toronto daily temperature forecast</h1>
+    <p class="lede">A portfolio project: an XGBoost model trained on six years of Toronto weather, served through SageMaker, Lambda and API Gateway. Open this page and it asks the live model to predict today's average temperature from the latest complete day of data.</p>
     <p class="links">
-      <a href="#how">How it works</a>
+      <a href="how-it-works.html">How it works</a>
       <a id="repo-link" href="#">Source code on GitHub</a>
     </p>
   </header>
@@ -178,6 +39,7 @@
           <div>
             <p class="pred-label" id="pred-label"></p>
             <div class="pred"><span class="pred-value" id="pred-value"></span><span class="pred-unit" id="pred-unit"></span></div>
+            <p class="pred-note muted small" id="pred-basis"></p>
             <p class="pred-note muted small">On days the model had never seen, its average miss was 2.0&nbsp;&deg;C (3.6&nbsp;&deg;F). Treat it as a guide, not a weather service.</p>
           </div>
           <div class="seg" role="group" aria-label="Temperature unit">
@@ -211,40 +73,6 @@
         <p id="err-body" style="margin:0 0 16px"></p>
         <button type="button" class="btn" id="retry">Try again</button>
       </div>
-    </section>
-
-    <section class="card" id="how">
-      <h2>How it works</h2>
-      <ol class="steps">
-        <li><strong>Your browser</strong> calls <code>GET /forecast</code> on an API Gateway HTTP API (rate limited to protect costs).</li>
-        <li><strong>A Lambda function</strong> pulls the last nine days of hourly weather from Open-Meteo, turns complete days into 13 features (daily averages, 1- and 2-day lags, a 7-day average, month and day of year), and calls the model.</li>
-        <li><strong>A SageMaker serverless endpoint</strong> runs an XGBoost model trained on 2020&ndash;2025 data and returns the predicted average temperature for the next day.</li>
-        <li><strong>A daily job</strong> compares each saved prediction with what actually happened and publishes the error to CloudWatch, with alarms by email.</li>
-      </ol>
-
-      <h3 style="margin-top:22px">Does it beat a trivial guess?</h3>
-      <p class="muted small" style="margin:0">Scored on 329 held-out days it never saw while training (chronological split, no shuffling).</p>
-      <table>
-        <thead><tr><th>Model</th><th class="num">Avg miss (MAE)</th><th class="num">RMSE</th></tr></thead>
-        <tbody>
-          <tr><td>Tomorrow = today</td><td class="num">2.37 &deg;C</td><td class="num">3.14 &deg;C</td></tr>
-          <tr><td>7-day average</td><td class="num">2.80 &deg;C</td><td class="num">3.53 &deg;C</td></tr>
-          <tr class="best"><td>XGBoost (this model)</td><td class="num">1.99 &deg;C</td><td class="num">2.60 &deg;C</td></tr>
-        </tbody>
-      </table>
-      <p class="muted small" style="margin:0">About 16% better than the strongest simple baseline. Next-day temperature is hard to beat because it changes slowly.</p>
-
-      <img class="diagram" src="deployment-diagram.png" alt="Architecture diagram: a client calls API Gateway, which invokes a Lambda that fetches weather data and calls a SageMaker serverless endpoint; a daily job tracks accuracy in CloudWatch and sends alerts through SNS." loading="lazy" width="1500" height="860">
-    </section>
-
-    <section class="card">
-      <h2>Known limits</h2>
-      <ul class="plain">
-        <li>One city (Toronto), and the model only sees past observations. It does not use atmospheric simulations, so it is not a substitute for a real forecast.</li>
-        <li>The model was trained on Open-Meteo's historical archive, while this page feeds it the recent-data feed, so inputs can differ slightly from what it learned on.</li>
-        <li>The prediction is for the day after the latest <em>complete</em> day of data, which is normally today (UTC).</li>
-        <li>The first request after a quiet period is slow by design (serverless cold start).</li>
-      </ul>
     </section>
   </main>
 
@@ -404,7 +232,10 @@
   function render() {
     const d = state.data;
     if (!d) return;
-    $("pred-label").textContent = "Predicted average temperature for " + dayLong(d.predicted_day) + " (UTC)";
+    const isToday = d.predicted_day === new Date().toISOString().slice(0, 10);
+    $("pred-label").textContent = (isToday ? "Today's predicted average temperature, " : "Predicted average temperature for ") +
+      dayLong(d.predicted_day) + " (UTC)";
+    $("pred-basis").textContent = "Based on complete weather data up to " + dayLong(d.features_day) + ".";
     $("pred-value").textContent = toUnit(d.predicted_avg_temp_c).toFixed(1);
     $("pred-unit").textContent = "°" + state.unit;
     $("unit-c").setAttribute("aria-pressed", String(state.unit === "C"));

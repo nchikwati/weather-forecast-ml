@@ -110,9 +110,10 @@ Example response (abridged):
 
 ## Web UI
 
-`docs/index.html` is a single static page (no build step) that calls
-`GET /forecast` on load and shows the prediction, a recent-days chart, the
-inputs the model saw, and the baseline comparison. It handles the ~10 s
+`docs/index.html` is a static page (no build step) that calls
+`GET /forecast` on load and shows today's prediction, a recent-days chart and
+the inputs the model saw. `docs/how-it-works.html` explains the architecture,
+the baseline comparison and the known limits; both share `docs/styles.css`. It handles the ~10 s
 serverless cold start, rate limiting, and failures. The API must allow the
 page's origin via CORS (`docs/cors.json`). Each page view is one API call, so
 the throttle and budget alert matter.
@@ -201,3 +202,4 @@ alarms, the SNS topic, the Glue crawler/database, and the S3 data.
 - [ ] CI/CD with GitHub Actions
 - [ ] Tests comparing SQL and Python feature logic
 - [ ] Automated retraining (SageMaker Pipelines)
+- [ ] Second model that forecasts two days ahead, so the page can show tomorrow

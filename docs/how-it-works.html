@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the Forecast Works</title>
+<meta name="description" content="How the Toronto temperature forecast is built and served on AWS: data pipeline, XGBoost model, SageMaker serverless endpoint, accuracy and known limits.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Machine learning on AWS</p>
+    <h1>How the forecast works</h1>
+    <p class="lede">What happens when the forecast page asks the model for a prediction, how good the model is, and where it falls short.</p>
+    <p class="links">
+      <a href="./">&larr; Back to the forecast</a>
+      <a href="https://github.com/nchikwati/weather-forecast-ml">Source code on GitHub</a>
+    </p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>From your browser to the model</h2>
+      <ol class="steps">
+        <li><strong>Your browser</strong> calls <code>GET /forecast</code> on an API Gateway HTTP API (rate limited to protect costs).</li>
+        <li><strong>A Lambda function</strong> pulls the last nine days of hourly weather from Open-Meteo, turns complete days into 13 features (daily averages, 1- and 2-day lags, a 7-day average, month and day of year), and calls the model.</li>
+        <li><strong>A SageMaker serverless endpoint</strong> runs an XGBoost model trained on 2020&ndash;2025 data and returns the predicted average temperature for the day after the latest complete day.</li>
+        <li><strong>A daily job</strong> compares each saved prediction with what actually happened and publishes the error to CloudWatch, with alarms by email.</li>
+      </ol>
+      <img class="diagram" src="deployment-diagram.png" alt="Architecture diagram: a client calls API Gateway, which invokes a Lambda that fetches weather data and calls a SageMaker serverless endpoint; a daily job tracks accuracy in CloudWatch and sends alerts through SNS." loading="lazy" width="1500" height="860">
+    </section>
+
+    <section class="card">
+      <h2>Why it forecasts today, not tomorrow</h2>
+      <p style="margin:0">The model learned to predict a day's average temperature from the full day before it. Days are counted in UTC, and the last day with all 24 hours of data is normally yesterday, so the prediction is for today. Forecasting tomorrow would need today's complete data, or a separate model trained to look two days ahead.</p>
+    </section>
+
+    <section class="card">
+      <h2>Does it beat a trivial guess?</h2>
+      <p class="muted small" style="margin:0">Scored on 329 held-out days it never saw while training (chronological split, no shuffling).</p>
+      <table>
+        <thead><tr><th>Model</th><th class="num">Avg miss (MAE)</th><th class="num">RMSE</th></tr></thead>
+        <tbody>
+          <tr><td>Same as the previous day</td><td class="num">2.37 &deg;C</td><td class="num">3.14 &deg;C</td></tr>
+          <tr><td>7-day average</td><td class="num">2.80 &deg;C</td><td class="num">3.53 &deg;C</td></tr>
+          <tr class="best"><td>XGBoost (this model)</td><td class="num">1.99 &deg;C</td><td class="num">2.60 &deg;C</td></tr>
+        </tbody>
+      </table>
+      <p class="muted small" style="margin:0">About 16% better than the strongest simple baseline. Day-to-day temperature is hard to beat because it changes slowly.</p>
+    </section>
+
+    <section class="card">
+      <h2>Known limits</h2>
+      <ul class="plain">
+        <li>One city (Toronto), and the model only sees past observations. It does not use atmospheric simulations, so it is not a substitute for a real forecast.</li>
+        <li>The model was trained on Open-Meteo's historical archive, while the forecast page feeds it the recent-data feed, so inputs can differ slightly from what it learned on.</li>
+        <li>The prediction is for the day after the latest <em>complete</em> day of data, which is normally today (UTC).</li>
+        <li>The first request after a quiet period is slow by design (serverless cold start).</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>Built with AWS SageMaker, Lambda, API Gateway, Glue, Athena and CloudWatch. Weather data from <a href="https://open-meteo.com/">Open-Meteo</a>.</footer>
+</div>
+</body>
+</html>

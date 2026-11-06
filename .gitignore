@@ -19,3 +19,6 @@ __pycache__/
 
 # Local copies of the S3 data lake
 local_data/
+
+# Claude Code local settings and worktrees
+.claude/
