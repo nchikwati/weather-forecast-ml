@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="wrap">
+<div class="wrap wide">
   <header>
     <h1>Toronto daily temperature forecast</h1>
   </header>
@@ -28,7 +28,8 @@
       </div>
 
       <!-- Result -->
-      <div id="state-result" hidden>
+      <div id="state-result" class="result-grid" hidden>
+       <div class="col-main">
         <div class="top">
           <div>
             <p class="pred-label" id="pred-label"></p>
@@ -51,14 +52,17 @@
             <li><span class="sw avg"></span>7-day average: <span id="avg7"></span></li>
           </ul>
         </div>
+       </div>
 
-        <h3 style="margin-top:24px" id="tiles-title"></h3>
+       <div class="col-side">
+        <h3 id="tiles-title"></h3>
         <ul class="tiles" id="tiles"></ul>
 
         <p class="latency muted small" id="latency"></p>
         <div class="actions">
           <button type="button" class="btn secondary" id="refresh">Get the forecast again</button>
         </div>
+       </div>
       </div>
 
       <!-- Error -->

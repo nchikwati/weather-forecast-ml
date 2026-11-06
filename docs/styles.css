@@ -109,6 +109,19 @@ h3 { margin: 0 0 8px; font-size: 1rem; }
 .latency { margin: 18px 0 0; }
 .actions { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 
+/* Forecast page: one column on phones, two side by side on wide screens */
+.wrap.wide { max-width: 1120px; }
+.col-side { margin-top: 24px; }
+@media (min-width: 900px) {
+  .wrap.wide { padding-bottom: 24px; }
+  .wrap.wide header { padding: 28px 0 16px; }
+  .wrap.wide .top { flex-wrap: nowrap; }
+  .result-grid:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+  .col-side { margin-top: 0; padding-left: 32px; border-left: 1px solid var(--line); }
+  .col-side .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .chart-wrap { margin-top: 18px; }
+}
+
 /* Loading */
 .loading { display: flex; gap: 16px; align-items: flex-start; }
 .spinner {
